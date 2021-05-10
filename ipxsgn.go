@@ -56,6 +56,7 @@ func (i *imgsign) GetPath(c *Config, url string) (string, error) {
 	if !regexURL.MatchString(url) {
 		return "", errors.New("invalid url format")
 	}
+
 	encodedURL := base64.RawURLEncoding.EncodeToString([]byte(url))
 
 	var extension string
@@ -88,5 +89,5 @@ func (i *imgsign) GetPath(c *Config, url string) (string, error) {
 
 	signature := base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
 
-	return fmt.Sprintf("%s/%s", signature, path), nil
+	return fmt.Sprintf("/%s/%s", signature, path), nil
 }

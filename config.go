@@ -61,12 +61,5 @@ func NewConfig(strResize, strGravity, strExtension string, iWidth, iHeight uint,
 }
 
 func NewDefaultConfig() *Config {
-	return &Config{
-		Resize:    ResizeAuto,
-		Width:     0,
-		Height:    0,
-		Gravity:   GravitySmart,
-		Enlarge:   1,
-		Extension: "",
-	}
+	return NewConfig(ResizeAuto, GravitySmart, "", 0, 0, true)
 }
