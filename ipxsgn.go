@@ -8,8 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
-
-	"github.com/go-playground/validator/v10"
 )
 
 type imgsign struct {
@@ -44,22 +42,13 @@ func New(key, salt string, keysaltAreEncoded bool) (ImgSign, error) {
 	return &imgsign{bytesKey: bKey, bytesSalt: bSalt}, nil
 }
 
-func validateConfig(c *Config) error {
-	val := validator.New()
-	err := val.Struct(c)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 func (i *imgsign) GetPath(c *Config, url string) (string, error) {
 	var enlarge uint8 = 1
 	if c.Enlarge == 0 {
 		enlarge = 0
 	}
 
-	err := validateConfig(c)
+	err := c.validate()
 	if err != nil {
 		return "", err
 	}
