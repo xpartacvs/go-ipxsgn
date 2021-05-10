@@ -21,10 +21,7 @@ type ImgSign interface {
 	GetPath(c *Config, url string) (string, error)
 }
 
-var (
-	regexURL      = regexp.MustCompile(`^(local|s3|gs|abs|https?)://.*`)
-	errInvalidURL = errors.New("invalid url format")
-)
+var regexURL = regexp.MustCompile(`^(local|s3|gs|abs|https?)://.*`)
 
 func New(key, salt string, keysaltAreEncoded bool) (ImgSign, error) {
 	if keysaltAreEncoded {
@@ -68,7 +65,7 @@ func (i *imgsign) GetPath(c *Config, url string) (string, error) {
 	}
 
 	if !regexURL.MatchString(url) {
-		return "", errInvalidURL
+		return "", errors.New("invalid url format")
 	}
 	encodedURL := base64.RawURLEncoding.EncodeToString([]byte(url))
 
