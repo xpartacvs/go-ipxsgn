@@ -8,9 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
-	"sync"
-
-	"github.com/go-playground/validator/v10"
 )
 
 type imgsign struct {
@@ -22,11 +19,7 @@ type ImgSign interface {
 	GetPath(c *Config, url string) (string, error)
 }
 
-var (
-	rgx           *regexp.Regexp
-	once          sync.Once
-	errInvalidURL = errors.New("invalid url format")
-)
+var regexURL = regexp.MustCompile(`^(local|s3|gs|abs|https?)://.*`)
 
 func New(key, salt string, keysaltAreEncoded bool) (ImgSign, error) {
 	if keysaltAreEncoded {
@@ -49,35 +42,19 @@ func New(key, salt string, keysaltAreEncoded bool) (ImgSign, error) {
 	return &imgsign{bytesKey: bKey, bytesSalt: bSalt}, nil
 }
 
-func regexURL() *regexp.Regexp {
-	once.Do(func() {
-		rgx = regexp.MustCompile(`^(local|s3|gs|abs|https?)://.*`)
-	})
-	return rgx
-}
-
-func validateConfig(c *Config) error {
-	val := validator.New()
-	err := val.Struct(c)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 func (i *imgsign) GetPath(c *Config, url string) (string, error) {
 	var enlarge uint8 = 1
 	if c.Enlarge == 0 {
 		enlarge = 0
 	}
 
-	err := validateConfig(c)
+	err := c.validate()
 	if err != nil {
 		return "", err
 	}
 
-	if !regexURL().MatchString(url) {
-		return "", errInvalidURL
+	if !regexURL.MatchString(url) {
+		return "", errors.New("invalid url format")
 	}
 	encodedURL := base64.RawURLEncoding.EncodeToString([]byte(url))
 

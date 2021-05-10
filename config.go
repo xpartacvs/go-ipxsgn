@@ -1,5 +1,7 @@
 package ipxsgn
 
+import "github.com/go-playground/validator/v10"
+
 const (
 	ResizeAuto = "auto"
 	ResizeFit  = "fit"
@@ -37,6 +39,10 @@ type Config struct {
 	Gravity   string `validate:"oneof=ce sm no so we ea nowe noea sowe soea"`
 	Enlarge   uint8  `validate:"gte=0,max=1"`
 	Extension string `validate:"omitempty,oneof=png jpg webp avif gif ico svg heic bmp tiff pdf mp4"`
+}
+
+func (c *Config) validate() error {
+	return validator.New().Struct(c)
 }
 
 func NewConfig(strResize, strGravity, strExtension string, iWidth, iHeight uint, bEnlarge bool) *Config {
