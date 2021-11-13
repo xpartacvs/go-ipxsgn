@@ -6,22 +6,18 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"regexp"
+	"strconv"
 )
 
-type imgsign struct {
+type ImgSign struct {
 	bytesKey  []byte
 	bytesSalt []byte
 }
 
-type ImgSign interface {
-	GetPath(c *Config, url string) (string, error)
-}
+var regexURL *regexp.Regexp = regexp.MustCompile(`^(local|s3|gs|abs|https?)://.*`)
 
-var regexURL = regexp.MustCompile(`^(local|s3|gs|abs|https?)://.*`)
-
-func New(key, salt string, keysaltAreEncoded bool) (ImgSign, error) {
+func New(key, salt string, keysaltAreEncoded bool) (*ImgSign, error) {
 	if keysaltAreEncoded {
 		bKey, err := hex.DecodeString(key)
 		if err != nil {
@@ -33,24 +29,19 @@ func New(key, salt string, keysaltAreEncoded bool) (ImgSign, error) {
 			return nil, err
 		}
 
-		return &imgsign{bytesKey: bKey, bytesSalt: bSalt}, nil
+		return &ImgSign{bytesKey: bKey, bytesSalt: bSalt}, nil
 	}
 
 	bKey := []byte(key)
 	bSalt := []byte(salt)
 
-	return &imgsign{bytesKey: bKey, bytesSalt: bSalt}, nil
+	return &ImgSign{bytesKey: bKey, bytesSalt: bSalt}, nil
 }
 
-func (i *imgsign) GetPath(c *Config, url string) (string, error) {
+func (i ImgSign) GetPath(c *Config, url string) (string, error) {
 	var enlarge uint8 = 1
-	if c.Enlarge == 0 {
+	if c.enlarge == 0 {
 		enlarge = 0
-	}
-
-	err := c.validate()
-	if err != nil {
-		return "", err
 	}
 
 	if !regexURL.MatchString(url) {
@@ -60,34 +51,21 @@ func (i *imgsign) GetPath(c *Config, url string) (string, error) {
 	encodedURL := base64.RawURLEncoding.EncodeToString([]byte(url))
 
 	var extension string
-	if len(c.Extension) > 0 {
-		extension = fmt.Sprintf(".%s", c.Extension)
+	if len(c.extension) > 0 {
+		extension = "." + string(c.extension)
 	}
 
-	path := fmt.Sprintf(
-		"%s/%d/%d/%s/%d/%s%s",
-		c.Resize,
-		c.Width,
-		c.Height,
-		c.Gravity,
-		enlarge,
-		encodedURL,
-		extension,
-	)
+	path := string(c.resize) + "/" + strconv.FormatUint(uint64(c.width), 10) + "/" + strconv.FormatUint(uint64(c.height), 10) + "/" + string(c.gravity) + "/" + strconv.FormatUint(uint64(enlarge), 10) + "/" + encodedURL + extension
 
 	mac := hmac.New(sha256.New, i.bytesKey)
-
-	_, err = mac.Write(i.bytesSalt)
-	if err != nil {
+	if _, err := mac.Write(i.bytesSalt); err != nil {
 		return "", err
 	}
-
-	_, err = mac.Write([]byte(path))
-	if err != nil {
+	if _, err := mac.Write([]byte(path)); err != nil {
 		return "", err
 	}
 
 	signature := base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
 
-	return fmt.Sprintf("/%s/%s", signature, path), nil
+	return "/" + signature + "/" + path, nil
 }
